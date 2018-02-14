@@ -1,14 +1,18 @@
-﻿using Microsoft.VisualStudio;
+﻿using EnvDTE;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Operations;
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using OLEConstants = Microsoft.VisualStudio.OLE.Interop.Constants;
+using OleInterop = Microsoft.VisualStudio.OLE.Interop;
 
 namespace RazorTools
 {
@@ -34,6 +38,7 @@ namespace RazorTools
         }
 
         public IOleCommandTarget Next { get; internal set; }
+        public object OleInterop { get; private set; }
 
         public int QueryStatus(ref Guid pguidCmdGroup, uint cCmds, OLECMD[] prgCmds, IntPtr pCmdText)
         {
@@ -97,9 +102,36 @@ namespace RazorTools
                 return VSConstants.S_OK;
             }
 
-            MessageBox.Show($"Open file{relatedFilePath}");
-            //TODO: Open file: relatedFilePath
+            System.Diagnostics.Debug.WriteLine($"Opening related Razor file: {relatedFilePath}");
+            //OpenFileViaDTE(relatedFilePath);
+            OpenFileViaCommandDispatcher(relatedFilePath);
+
             return VSConstants.S_OK;
+        }
+
+        private void OpenFileViaDTE(string filePath)
+        {
+            DTE dte = (DTE)globalServiceProvider.GetService(typeof(DTE));
+            dte.ExecuteCommand("File.OpenFile", filePath);
+        }
+
+        private void OpenFileViaCommandDispatcher(string filePath)
+        {
+            Guid cmdGroup = VSConstants.VSStd2K;
+            uint cmdID = (uint)VSConstants.VSStd2KCmdID.OPENFILE;
+
+            string inArg = filePath;
+            IntPtr inArgPtr = Marshal.AllocCoTaskMem(200);   // TODO: Calculate sizeof string
+            Marshal.GetNativeVariantForObject(filePath, inArgPtr);
+
+            IOleCommandTarget commandDispatcher = GetShellCommandDispatcher();
+            commandDispatcher.Exec(ref cmdGroup, cmdID, (uint)OLECMDEXECOPT.OLECMDEXECOPT_DODEFAULT, inArgPtr, IntPtr.Zero);
+            Marshal.FreeCoTaskMem(inArgPtr);
+        }
+
+        private IOleCommandTarget GetShellCommandDispatcher()
+        {
+            return globalServiceProvider.GetService(typeof(SUIHostCommandDispatcher)) as IOleCommandTarget;
         }
 
         private bool HasAssociatedRazorFile()
