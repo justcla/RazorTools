@@ -1,15 +1,10 @@
-﻿using EnvDTE;
-using Microsoft.VisualStudio;
+﻿using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Editor;
-using Microsoft.VisualStudio.Text.Operations;
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using OLEConstants = Microsoft.VisualStudio.OLE.Interop.Constants;
 
@@ -20,19 +15,12 @@ namespace RazorTools
         private const string CODE_BEHIND_FILE_SUFFIX = ".cshtml.cs";
         private const string RAZOR_PAGES_FILE_SUFFIX = ".cshtml";
 
-        private readonly IWpfTextView textView;
-        private readonly IWpfTextViewHost textViewHost;
-        private readonly IClassifier classifier;
         private readonly SVsServiceProvider globalServiceProvider;
-        private IEditorOperations editorOperations;
+        private readonly IWpfTextViewHost textViewHost;
 
-        public RazorToolsCommandFilter(IWpfTextView textView, IClassifierAggregatorService aggregatorFactory,
-            SVsServiceProvider globalServiceProvider, IEditorOperationsFactoryService editorOperationsFactory, IWpfTextViewHost textViewHost)
+        public RazorToolsCommandFilter(SVsServiceProvider globalServiceProvider, IWpfTextViewHost textViewHost)
         {
-            this.textView = textView;
-            classifier = aggregatorFactory.GetClassifier(textView.TextBuffer);
             this.globalServiceProvider = globalServiceProvider;
-            editorOperations = editorOperationsFactory.GetEditorOperations(textView);
             this.textViewHost = textViewHost;
         }
 
@@ -100,12 +88,8 @@ namespace RazorTools
 
         private static void UpdateMenuItemText(IntPtr pCmdText, string currentFilePath)
         {
-            // Note: This was causing errors
-            string newText = IsFileType(currentFilePath, RAZOR_PAGES_FILE_SUFFIX) 
-                ? "Code &Behind" : "&Razor Page";
+            string newText = IsFileType(currentFilePath, RAZOR_PAGES_FILE_SUFFIX) ? "&Code Behind" : "&Razor File";
             VsShellUtilities.SetOleCmdText(pCmdText, newText);
-            //Microsoft.VisualStudio.PlatformUI.OleCommandUtilities.SetOleCmdText(pCmdText, newText);
-            //OLECMDTEXT.SetText(pCmdText, newText);
         }
 
         private int HandleExec_ToggleCodeBehindView()
@@ -128,31 +112,6 @@ namespace RazorTools
         private void OpenFileViaVsShellUtilities(string filePath)
         {
             VsShellUtilities.OpenDocument(globalServiceProvider, filePath);
-        }
-
-        private void OpenFileViaDTE(string filePath)
-        {
-            DTE dte = (DTE)globalServiceProvider.GetService(typeof(DTE));
-            dte.ExecuteCommand("File.OpenFile", filePath);
-        }
-
-        private void OpenFileViaCommandDispatcher(string filePath)
-        {
-            Guid cmdGroup = VSConstants.VSStd2K;
-            uint cmdID = (uint)VSConstants.VSStd2KCmdID.OPENFILE;
-
-            string inArg = filePath;
-            IntPtr inArgPtr = Marshal.AllocCoTaskMem(200);   // TODO: Calculate sizeof string
-            Marshal.GetNativeVariantForObject(filePath, inArgPtr);
-
-            IOleCommandTarget commandDispatcher = GetShellCommandDispatcher();
-            commandDispatcher.Exec(ref cmdGroup, cmdID, (uint)OLECMDEXECOPT.OLECMDEXECOPT_DODEFAULT, inArgPtr, IntPtr.Zero);
-            Marshal.FreeCoTaskMem(inArgPtr);
-        }
-
-        private IOleCommandTarget GetShellCommandDispatcher()
-        {
-            return globalServiceProvider.GetService(typeof(SUIHostCommandDispatcher)) as IOleCommandTarget;
         }
 
         private bool HasAssociatedRazorFile(string filePath)

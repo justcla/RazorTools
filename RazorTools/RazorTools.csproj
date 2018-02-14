@@ -56,7 +56,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Constants.cs" />
-    <Compile Include="OLECMDTEXT.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RazorToolsCommandFilter.cs" />
     <Compile Include="RazorToolsPackage.cs" />

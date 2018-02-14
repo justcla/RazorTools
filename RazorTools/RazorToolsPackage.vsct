@@ -10,7 +10,7 @@
   <Commands package="guidRazorToolsPackage">
 
     <Groups>
-      <Group guid="guidRazorToolsPackageCmdSet" id="RazorToolsGroup" priority="0x0100">
+      <Group guid="guidRazorToolsPackageCmdSet" id="RazorToolsGroup" priority="0x0010">
         <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_VIEW"/>
       </Group>
     </Groups>
@@ -23,6 +23,7 @@
         <CommandFlag>TextChanges</CommandFlag>
         <Strings>
           <ButtonText>Toggle Code Behind View</ButtonText>
+          <MenuText>&amp;Code Behind</MenuText>
         </Strings>
       </Button>
     </Buttons>
