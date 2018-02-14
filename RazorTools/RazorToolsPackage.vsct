@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <!--This is the file that defines the IDs for all the commands exposed by VisualStudio. -->
+  <Extern href="stdidcmd.h"/>
+
+  <!--This header contains the command ids for the menus provided by the shell. -->
+  <Extern href="vsshlids.h"/>
+
+  <Commands package="guidRazorToolsPackage">
+
+    <Groups>
+      <Group guid="guidRazorToolsPackageCmdSet" id="RazorToolsGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_TOOLS"/>
+      </Group>
+    </Groups>
+
+    <Buttons>
+      <Button guid="guidRazorToolsPackageCmdSet" id="ToggleCodeBehindViewCmdId" priority="0x0100" type="Button">
+        <Parent guid="guidRazorToolsPackageCmdSet" id="RazorToolsGroup"/>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Toggle Code Behind View</ButtonText>
+        </Strings>
+      </Button>
+    </Buttons>
+
+  </Commands>
+
+  <KeyBindings>
+    <KeyBinding guid="guidRazorToolsPackageCmdSet" id="ToggleCodeBehindViewCmdId" editor="GUID_TextEditorFactory" key1="VK_F7"/>
+  </KeyBindings>
+
+  <Symbols>
+    <!-- This is the package guid. -->
+    <GuidSymbol name="guidRazorToolsPackage" value="{ae5f0c30-ae96-41c5-9ba9-ca5462f0d52f}" />
+    <!-- This is the guid used to group the menu commands together -->
+    <GuidSymbol name="guidRazorToolsPackageCmdSet" value="{9f712b76-ef6b-42e8-9471-72b5b9289c66}">
+      <IDSymbol name="RazorToolsGroup" value="0x1020" />
+      <IDSymbol name="ToggleCodeBehindViewCmdId" value="0x0100" />
+    </GuidSymbol>
+  </Symbols>
+
+</CommandTable>
