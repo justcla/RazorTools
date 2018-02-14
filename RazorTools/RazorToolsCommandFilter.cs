@@ -12,7 +12,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using OLEConstants = Microsoft.VisualStudio.OLE.Interop.Constants;
-using OleInterop = Microsoft.VisualStudio.OLE.Interop;
 
 namespace RazorTools
 {
@@ -38,7 +37,6 @@ namespace RazorTools
         }
 
         public IOleCommandTarget Next { get; internal set; }
-        public object OleInterop { get; private set; }
 
         public int QueryStatus(ref Guid pguidCmdGroup, uint cCmds, OLECMD[] prgCmds, IntPtr pCmdText)
         {
@@ -48,7 +46,7 @@ namespace RazorTools
                 switch (prgCmds[0].cmdID)
                 {
                     case Constants.ToggleCodeBehindViewCmdId:
-                        return HandleQueryStatus_ToggleCodeBehindView(prgCmds);
+                        return HandleQueryStatus_ToggleCodeBehindView(prgCmds, pCmdText);
                 }
             }
 
@@ -82,15 +80,32 @@ namespace RazorTools
 
         //---------------- Specific handlers -----------------
 
-        private int HandleQueryStatus_ToggleCodeBehindView(OLECMD[] prgCmds)
+        private int HandleQueryStatus_ToggleCodeBehindView(OLECMD[] prgCmds, IntPtr pCmdText)
         {
             // Command should be enabled if the file is *.cshtml with associated *.cshtml.cs (or vice-versa)
-            if (HasAssociatedRazorFile())
+            string currentFilePath = GetCurrentFilePath();
+            if (HasAssociatedRazorFile(currentFilePath))
             {
                 prgCmds[0].cmdf |= (uint)OLECMDF.OLECMDF_SUPPORTED;
                 prgCmds[0].cmdf |= (uint)OLECMDF.OLECMDF_ENABLED;
+
+                // Update the menu item text - if QueryStatus is asking for potential text changes
+                if (pCmdText != IntPtr.Zero)
+                {
+                    UpdateMenuItemText(pCmdText, currentFilePath);
+                }
             }
             return VSConstants.S_OK;
+        }
+
+        private static void UpdateMenuItemText(IntPtr pCmdText, string currentFilePath)
+        {
+            // Note: This was causing errors
+            string newText = IsFileType(currentFilePath, RAZOR_PAGES_FILE_SUFFIX) 
+                ? "Code &Behind" : "&Razor Page";
+            VsShellUtilities.SetOleCmdText(pCmdText, newText);
+            //Microsoft.VisualStudio.PlatformUI.OleCommandUtilities.SetOleCmdText(pCmdText, newText);
+            //OLECMDTEXT.SetText(pCmdText, newText);
         }
 
         private int HandleExec_ToggleCodeBehindView()
@@ -104,9 +119,15 @@ namespace RazorTools
 
             System.Diagnostics.Debug.WriteLine($"Opening related Razor file: {relatedFilePath}");
             //OpenFileViaDTE(relatedFilePath);
-            OpenFileViaCommandDispatcher(relatedFilePath);
+            //OpenFileViaCommandDispatcher(relatedFilePath);
+            OpenFileViaVsShellUtilities(relatedFilePath);
 
             return VSConstants.S_OK;
+        }
+
+        private void OpenFileViaVsShellUtilities(string filePath)
+        {
+            VsShellUtilities.OpenDocument(globalServiceProvider, filePath);
         }
 
         private void OpenFileViaDTE(string filePath)
@@ -134,15 +155,15 @@ namespace RazorTools
             return globalServiceProvider.GetService(typeof(SUIHostCommandDispatcher)) as IOleCommandTarget;
         }
 
-        private bool HasAssociatedRazorFile()
+        private bool HasAssociatedRazorFile(string filePath)
         {
-            string relatedFilePath = GetRelatedFilePath();
+            string relatedFilePath = GetRelatedFilePath(filePath);
             return relatedFilePath != null && File.Exists(relatedFilePath);
         }
 
-        private string GetRelatedFilePath()
+        private string GetRelatedFilePath(string filePath = null)
         {
-            string filePath = GetCurrentFilePath();
+            filePath = filePath ?? GetCurrentFilePath();
             if (filePath == null)
             {
                 // Error state
